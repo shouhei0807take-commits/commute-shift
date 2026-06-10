@@ -1,0 +1,19 @@
+# 環境変数
+.env
+
+# Node
+node_modules/
+dist/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
