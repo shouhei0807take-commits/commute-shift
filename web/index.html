@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommuteShift - 満員電車回遺アプリ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; line-height: 1.6; background: #f5f5f5; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    header { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; padding: 30px 20px; text-align: center; }
+    header h1 { font-size: 2rem; }
+    header p { margin-top: 8px; }
+    .search { background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-top: 24px; }
+    .search label { display: block; margin-bottom: 8px; font-weight: 600; }
+    .search input { width: 100%; padding: 10px; font-size: 1rem; border: 1px solid #ddd; border-radius: 4px; }
+    .search button { margin-top: 16px; padding: 12px 32px; background: #667eea; color: #fff; border: none; font-size: 1rem; border-radius: 4px; cursor: pointer; }
+    .search button:hover { background: #5568d3; }
+    .recommendations { margin-top: 24px; display: grid; gap: 16px; }
+    .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .card.best { border: 2px solid #667eea; }
+    .card h3 { margin-bottom: 12px; color: #333; }
+    .card .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; background: #f0f0f0; color: #666; }
+    .card.best .badge { background: #667eea; color: #fff; }
+    .card .score { font-size: 2rem; font-weight: 700; color: #667eea; margin: 12px 0; }
+    .card .details { margin-top: 12px; font-size: 0.95rem; color: #555; }
+    .card .lines { margin-top: 8px; color: #888; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🚆 CommuteShift</h1>
+    <p>満員電車を回遺して快適通勤</p>
+  </header>
+  <div class="container">
+    <div class="search">
+      <label for="from">出発駅</label>
+      <input type="text" id="from" placeholder="渋谷">
+      <label for="to" style="margin-top:16px">到着駅</label>
+      <input type="text" id="to" placeholder="東京">
+      <button onclick="search()">推奨路線を検索</button>
+    </div>
+    <div id="results" class="recommendations"></div>
+  </div>
+
+  <script>
+    async function search() {
+      const fromEl = document.getElementById('from');
+      const toEl = document.getElementById('to');
+      const resultsEl = document.getElementById('results');
+      const from = fromEl.value.trim();
+      const to = toEl.value.trim();
+      if (!from || !to) {
+        alert('駅名を入力してください');
+        return;
+      }
+
+      // 簡易デモ：ハードコード (fromStationId=2, toStationId=1)
+      const preference = 'balanced';
+      const apiUrl = `http://localhost:3000/v1/recommendations/commute?fromStationId=2&toStationId=1&preference=${preference}`;
+
+      try {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        renderResults(data.recommendations || []);
+      } catch (err) {
+        resultsEl.innerHTML = `<p>エラー： ${err.message}</p>`;
+      }
+    }
+
+    function renderResults(recs) {
+      const resultsEl = document.getElementById('results');
+      if (recs.length === 0) {
+        resultsEl.innerHTML = '<p>路線が見つかりませんでした</p>';
+        return;
+      }
+
+      resultsEl.innerHTML = recs.map((rec, i) => {
+        const isBest = i === 0;
+        const badgeText = isBest ? '🏆 最適' : `${i + 1}位`;
+        const cardClass = isBest ? 'card best' : 'card';
+
+        const lines = rec.lines.map(l => l.lineName).join(' → ');
+        return `
+          <div class="${cardClass}">
+            <div>
+              <span class="badge">${badgeText}</span>
+              <h3>${rec.routeName}</h3>
+            </div>
+            <div class="score">スコア: ${rec.score.total.toFixed(1)}</div>
+            <div class="details">
+              <div>🔁 乗り換え: ${rec.transferCount}回</div>
+              <div>⏱️ 所要時間: 約${rec.estimatedMinutes}分</div>
+              <div>🛤️ 正確性: ${rec.score.reliability.toFixed(1)}</div>
+              <div>🚇 混雑度: ${rec.score.congestion.toFixed(1)}</div>
+            </div>
+            <div class="lines">📍 ${lines}</div>
+          </div>
+        `;
+      }).join('');
+    }
+  </script>
+</body>
+</html>
